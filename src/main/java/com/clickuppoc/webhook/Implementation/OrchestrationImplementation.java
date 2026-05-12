@@ -1,6 +1,5 @@
 package com.clickuppoc.webhook.Implementation;
 
-
 import com.clickuppoc.webhook.Service.WebHookService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,6 +30,9 @@ public class OrchestrationImplementation implements WebHookService {
 
     @Value("${superagent.api.key}")
     private String superagentApiKey;
+
+    @Value("${superagent.user.id}")
+    private String superagentUserId;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final RestTemplate restTemplate = new RestTemplate();
@@ -104,23 +106,43 @@ public class OrchestrationImplementation implements WebHookService {
             try {
                 LOG.info("### Triggering superagent for list: {}", listId);
 
-                Map<String, String> body = new HashMap<>();
-                body.put("trigger",    "clickup_list_created");
-                body.put("list_id",    listId);
-                body.put("space_id",   spaceId);
-                body.put("team_id",    teamId);
-                body.put("webhook_id", webhookId);
-
                 HttpHeaders headers = new HttpHeaders();
                 headers.setContentType(MediaType.APPLICATION_JSON);
-                headers.setBearerAuth(superagentApiKey);
+                headers.set("Authorization", superagentApiKey);
 
-                HttpEntity<Map<String, String>> request = new HttpEntity<>(body, headers);
+                // Step 1: Create or retrieve DM channel with the super agent
+                Map<String, Object> dmBody = new HashMap<>();
+                dmBody.put("member_ids", java.util.List.of(superagentUserId));
 
-                ResponseEntity<String> response =
-                        restTemplate.postForEntity(superagentEndpoint, request, String.class);
+                HttpEntity<Map<String, Object>> dmRequest = new HttpEntity<>(dmBody, headers);
 
-                LOG.info("### Superagent responded: HTTP {}", response.getStatusCode());
+                ResponseEntity<Map> dmResponse = restTemplate.postForEntity(
+                        "https://api.clickup.com/api/v3/workspaces/" + teamId + "/chat/direct-messages",
+                        dmRequest,
+                        Map.class
+                );
+
+                String channelId = (String) ((Map<?, ?>) dmResponse.getBody()).get("id");
+                LOG.info("### DM channel ID: {}", channelId);
+
+                // Step 2: Send a message to the super agent
+                String message = "A new list has been created with ID: " + listId +
+                        " in space: " + spaceId +
+                        ". Please create the predefined folders for this list now.";
+
+                Map<String, Object> msgBody = new HashMap<>();
+                msgBody.put("content", message);
+                msgBody.put("content_format", "text/md");
+
+                HttpEntity<Map<String, Object>> msgRequest = new HttpEntity<>(msgBody, headers);
+
+                ResponseEntity<String> msgResponse = restTemplate.postForEntity(
+                        "https://api.clickup.com/api/v3/workspaces/" + teamId + "/chat/channels/" + channelId + "/messages",
+                        msgRequest,
+                        String.class
+                );
+
+                LOG.info("### Superagent DM sent: HTTP {}", msgResponse.getStatusCode());
 
             } catch (Exception e) {
                 LOG.error("Failed to trigger superagent: {}", e.getMessage());
