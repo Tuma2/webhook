@@ -116,13 +116,29 @@ public class OrchestrationImplementation implements WebHookService {
 
                 HttpEntity<Map<String, Object>> dmRequest = new HttpEntity<>(dmBody, headers);
 
+                // Step 1: Create or retrieve DM channel with the super agent
                 ResponseEntity<Map> dmResponse = restTemplate.postForEntity(
                         "https://api.clickup.com/api/v3/workspaces/" + teamId + "/chat/channels/direct_message",
                         dmRequest,
                         Map.class
                 );
 
-                String channelId = (String) ((Map<?, ?>) dmResponse.getBody()).get("id");
+// Log full response to see actual structure
+                LOG.info("### DM Response body: {}", dmResponse.getBody());
+
+                Map<?, ?> dmBodyOne = dmResponse.getBody();
+// Try both possible keys
+                String channelId = null;
+                if (dmBodyOne != null) {
+                    if (dmBodyOne.get("id") != null) {
+                        channelId = dmBodyOne.get("id").toString();
+                    } else if (dmBodyOne.get("channel_id") != null) {
+                        channelId = dmBodyOne.get("channel_id").toString();
+                    } else if (dmBodyOne.get("data") != null) {
+                        channelId = ((Map<?, ?>) dmBodyOne.get("data")).get("id").toString();
+                    }
+                }
+
                 LOG.info("### DM channel ID: {}", channelId);
 
                 // Step 2: Send a message to the super agent
