@@ -117,7 +117,7 @@ public class OrchestrationImplementation implements WebHookService {
                 HttpEntity<Map<String, Object>> dmRequest = new HttpEntity<>(dmBody, headers);
 
                 ResponseEntity<Map> dmResponse = restTemplate.postForEntity(
-                        "https://api.clickup.com/api/v3/workspaces/" + teamId + "/chat/direct-messages",
+                        "https://api.clickup.com/api/v3/workspaces/" + teamId + "/chat/channels/direct_message",
                         dmRequest,
                         Map.class
                 );
