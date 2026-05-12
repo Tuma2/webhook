@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import javax.crypto.Mac;
@@ -17,6 +18,7 @@ import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.Map;
 
+@Service
 public class OrchestrationImplementation implements WebHookService {
 
     private static final Logger LOG = LoggerFactory.getLogger(OrchestrationImplementation.class);
