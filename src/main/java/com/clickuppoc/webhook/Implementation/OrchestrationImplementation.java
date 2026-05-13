@@ -142,9 +142,12 @@ public class OrchestrationImplementation implements WebHookService {
                 LOG.info("### DM channel ID: {}", channelId);
 
                 // Step 2: Send a message to the super agent
-                String message = "A new list has been created with ID: " + listId +
-                        " in space: " + spaceId +
-                        ". Please create the predefined folders for this list now.";
+                String message = "A new client list has been created in the WWISE PMO space. " +
+                        "List ID: " + listId + ", Space ID: " + spaceId + ". " +
+                        "Please scaffold the full 4-list structure for this client now: " +
+                        "1) Consultation & Onboarding, 2) ISO Implementation (4-Phase), " +
+                        "3) Gap Analysis, 4) Internal Audit & Closing. " +
+                        "Use the standard WWISE PMO configuration for statuses, custom fields, and views.";
 
                 LOG.info("#### Message to send: {}", message);
 
