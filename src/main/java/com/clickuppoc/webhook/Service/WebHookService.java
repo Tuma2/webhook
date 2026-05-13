@@ -1,6 +1,6 @@
 package com.clickuppoc.webhook.Service;
 
-import com.clickuppoc.webhook.DTO.EventDTO;
+
 import org.springframework.http.ResponseEntity;
 
 import java.util.Map;

@@ -146,6 +146,8 @@ public class OrchestrationImplementation implements WebHookService {
                         " in space: " + spaceId +
                         ". Please create the predefined folders for this list now.";
 
+                LOG.info("#### Message to send: {}", message);
+
                 Map<String, Object> msgBody = new HashMap<>();
                 msgBody.put("content", message);
                 msgBody.put("content_format", "text/md");
@@ -159,6 +161,8 @@ public class OrchestrationImplementation implements WebHookService {
                 );
 
                 LOG.info("### Superagent DM sent: HTTP {}", msgResponse.getStatusCode());
+                LOG.info("### Superagent response body: {}", msgResponse.getBody());
+                LOG.info("### Superagent DM sent successfully to channel: {}", channelId);
 
             } catch (Exception e) {
                 LOG.error("Failed to trigger superagent: {}", e.getMessage());
