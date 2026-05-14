@@ -64,7 +64,7 @@ public class OrchestrationImplementation implements WebHookService {
 //        String spaceId   = payload.path("space_id").asText("");
         String teamId    = payload.path("team_id").asText("");
         String webhookId = payload.path("webhook_id").asText("");
-
+        testTriggerViaApi(teamId);
         String spaceId = payload.path("space_id").asText("");
         if (spaceId.isBlank()) {
             spaceId = payload.path("list").path("space").path("id").asText("");
@@ -80,6 +80,7 @@ public class OrchestrationImplementation implements WebHookService {
         LOG.info("### Payload details - spaceId: {}, teamId: {}, webhookId: {}", spaceId, teamId, webhookId);
 
         if ("listCreated".equals(event)) {
+//            LOG.info("### listCreated event received for space: {}", spaceId);testTriggerViaApi(teamId);
             triggerSuperagentAsync(spaceId, teamId, webhookId);
         } else {
             LOG.info("### Event ignored (not listCreated): {}", event);
@@ -112,8 +113,32 @@ public class OrchestrationImplementation implements WebHookService {
         }
     }
 
-    private void triggerViaApi(){
+    private void testTriggerViaApi(String teamID){
+        new Thread(() ->{
+            LOG.info("### Test Trigger for teamID: {}",teamID);
 
+            try{
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                headers.set("Authorization", superagentApiKey);
+
+                Map<String, Object> dmBody = new HashMap<>();
+                dmBody.put("member_ids", java.util.List.of(superagentUserId));
+
+                HttpEntity<Map<String, Object>> dmRequest = new HttpEntity<>(dmBody, headers);
+
+                ResponseEntity<Map> dmResponse = restTemplate.postForEntity(
+                        "https://api.clickup.com/api/v2/team/"+teamID+"/space",
+                        dmRequest,
+                        Map.class
+                );
+
+                LOG.info("### 123 DM Response body: {}", dmResponse.getBody());
+
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     private void triggerSuperagentAsync(String spaceId, String teamId, String webhookId) {
