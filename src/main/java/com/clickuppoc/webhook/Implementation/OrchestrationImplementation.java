@@ -64,7 +64,7 @@ public class OrchestrationImplementation implements WebHookService {
         String teamId    = payload.path("team_id").asText("");
         String webhookId = payload.path("webhook_id").asText("");
         LOG.info("#### ==> SpaceId: {}\nEvent: {}\nTeamId: {}\nWebhookId: {}\nsecret: {}", spaceId, event, teamId, webhookId, webhookSecret);
-        
+
         if("spaceCreated".equals(event)){
             triggerSpaceEvent(spaceId, teamId, webhookId);
         }else{
@@ -151,7 +151,7 @@ public class OrchestrationImplementation implements WebHookService {
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
-        });
+        }).start();
     }
 
     private boolean isValidSignature(String rawBody, String receivedSignature) {
