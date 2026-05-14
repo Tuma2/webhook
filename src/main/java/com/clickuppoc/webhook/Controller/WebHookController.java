@@ -24,7 +24,7 @@ public class WebHookController {
     public ResponseEntity<Map<String, Object>> handleClickUpEvent(
             @RequestHeader(value = "x-signature", required = false) String signature,
             @RequestBody Map<String, Object> rawBody) {
-
+            LOG.info("### Received webhook event with signature: {}", signature);
             try{
                 LOG.info("### RawBody received in controller: {}", rawBody.toString());
                 String spaceId = String.valueOf(rawBody.get("space_id"));
