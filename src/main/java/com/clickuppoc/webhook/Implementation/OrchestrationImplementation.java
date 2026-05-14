@@ -60,11 +60,11 @@ public class OrchestrationImplementation implements WebHookService {
             return ResponseEntity.<Map<String, Object>>badRequest().body(errorBody);
         }
         String spaceId = payload.path("space_id").asText("");
-        String event = String.valueOf(payload.get("event"));
-        String teamId    = String.valueOf(payload.get("team_id"));
-        String webhookId = String.valueOf(payload.get("webhook_id"));
+        String event = payload.path("event").asText("");
+        String teamId    = payload.path("team_id").asText("");
+        String webhookId = payload.path("webhook_id").asText("");
         LOG.info("#### ==> SpaceId: {}\nEvent: {}\nTeamId: {}\nWebhookId: {}\nsecret: {}", spaceId, event, teamId, webhookId, webhookSecret);
-
+        
         if("spaceCreated".equals(event)){
             triggerSpaceEvent(spaceId, teamId, webhookId);
         }else{
