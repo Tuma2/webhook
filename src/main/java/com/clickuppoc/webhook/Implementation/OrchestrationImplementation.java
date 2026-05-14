@@ -60,9 +60,20 @@ public class OrchestrationImplementation implements WebHookService {
 
         String event     = payload.path("event").asText("");
         String listId    = payload.path("list_id").asText("");
-        String spaceId   = payload.path("space_id").asText("");
+//        String spaceId   = payload.path("space_id").asText("");
         String teamId    = payload.path("team_id").asText("");
         String webhookId = payload.path("webhook_id").asText("");
+
+        String spaceId = payload.path("space_id").asText("");
+        if (spaceId.isBlank()) {
+            spaceId = payload.path("list").path("space").path("id").asText("");
+        }
+        if (spaceId.isBlank()) {
+            // some events put it directly under "space"
+            spaceId = payload.path("space").path("id").asText("");
+        }
+
+        LOG.info("###@@@ Payload details - spaceId: {}, teamId: {}, webhookId: {}", spaceId, teamId, webhookId);
 
         LOG.info("### Received ClickUp event: {} | list: {}", event, listId);
         LOG.info("### Payload details - spaceId: {}, teamId: {}, webhookId: {}", spaceId, teamId, webhookId);
