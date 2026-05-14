@@ -50,6 +50,7 @@ public class OrchestrationImplementation implements WebHookService {
         JsonNode payload;
         try {
             payload = objectMapper.readTree(rawBody);
+            LOG.info("### Webhook payload parsed successfully ==> {}", payload.toString());
         } catch (Exception e) {
             LOG.warn("Failed to parse webhook payload: {}", e.getMessage());
             Map<String, Object> errorBody = new HashMap<>();
@@ -64,6 +65,7 @@ public class OrchestrationImplementation implements WebHookService {
         String webhookId = payload.path("webhook_id").asText("");
 
         LOG.info("### Received ClickUp event: {} | list: {}", event, listId);
+        LOG.info("### Payload details - spaceId: {}, teamId: {}, webhookId: {}", spaceId, teamId, webhookId);
 
         // 3. ── Filter: only act on listCreated
         if ("listCreated".equals(event)) {
@@ -72,7 +74,7 @@ public class OrchestrationImplementation implements WebHookService {
             LOG.info("### Event ignored (not listCreated): {}", event);
         }
 
-        // 4. ── Acknowledge ClickUp immediately (must respond within 3 seconds)
+        //  Acknowledge ClickUp immediately (must respond within 3 seconds)
         Map<String, Object> ack = new HashMap<>();
         ack.put("received", true);
         return ResponseEntity.<Map<String, Object>>ok(ack);
@@ -97,6 +99,10 @@ public class OrchestrationImplementation implements WebHookService {
             LOG.error("### Signature verification error: {}", e.getMessage());
             return false;
         }
+    }
+
+    private void triggerViaApi(){
+
     }
 
     private void triggerSuperagentAsync(
