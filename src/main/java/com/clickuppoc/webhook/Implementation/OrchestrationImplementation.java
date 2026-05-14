@@ -39,7 +39,7 @@ public class OrchestrationImplementation implements WebHookService {
 
 
     @Override
-    public ResponseEntity<Map<String, Object>> handleClickUpEvent(String signature, Map<String, Object> rawBody) {
+    public ResponseEntity<Map<String, Object>> handleClickUpEvent(String signature, String rawBody) {
         if (!isValidSignature(rawBody, signature)) {
             LOG.warn("### Invalid signature received — request rejected");
             Map<String, Object> errorBody = new HashMap<>();
@@ -47,11 +47,22 @@ public class OrchestrationImplementation implements WebHookService {
             return ResponseEntity.<Map<String, Object>>status(HttpStatus.UNAUTHORIZED).body(errorBody);
         }
 
+        LOG.info("THis is the rawbody as a string: {}",rawBody);
 
-        String spaceId = String.valueOf(rawBody.get("space_id"));
-        String event = String.valueOf(rawBody.get("event"));
-        String teamId    = String.valueOf(rawBody.get("team_id"));
-        String webhookId = String.valueOf(rawBody.get("webhook_id"));
+        JsonNode payload;
+        try {
+            payload = objectMapper.readTree(rawBody);
+            LOG.info("### Raw webhook payload parsed successfully ==> {}", payload.toString());
+        } catch (Exception e) {
+            LOG.warn("Failed to parse webhook payload: {}", e.getMessage());
+            Map<String, Object> errorBody = new HashMap<>();
+            errorBody.put("error", "Invalid JSON");
+            return ResponseEntity.<Map<String, Object>>badRequest().body(errorBody);
+        }
+        String spaceId = payload.path("space_id").asText("");
+        String event = String.valueOf(payload.get("event"));
+        String teamId    = String.valueOf(payload.get("team_id"));
+        String webhookId = String.valueOf(payload.get("webhook_id"));
         LOG.info("#### ==> SpaceId: {}\nEvent: {}\nTeamId: {}\nWebhookId: {}\nsecret: {}", spaceId, event, teamId, webhookId, webhookSecret);
 
         if("spaceCreated".equals(event)){
@@ -143,7 +154,7 @@ public class OrchestrationImplementation implements WebHookService {
         });
     }
 
-    private boolean isValidSignature(Map<String, Object> rawBody, String receivedSignature) {
+    private boolean isValidSignature(String rawBody, String receivedSignature) {
         LOG.info("### Verifying signature for incoming webhook event receivedSignature {}:",receivedSignature);
         if (receivedSignature == null || receivedSignature.isBlank()) {
             LOG.warn("### No x-signature header present");
