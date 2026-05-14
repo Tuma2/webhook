@@ -23,12 +23,12 @@ public class WebHookController {
     @PostMapping("/listCreated")
     public ResponseEntity<Map<String, Object>> handleClickUpEvent(
             @RequestHeader(value = "x-signature", required = false) String signature,
-            @RequestBody Map<String, Object> rawBody) {
+            @RequestBody String rawBody) {
             LOG.info("### Received webhook event with signature: {}", signature);
             try{
-                LOG.info("### RawBody received in controller: {}", rawBody.toString());
-                String spaceId = String.valueOf(rawBody.get("space_id"));
-                LOG.info("### 123 Received webhook event for space ID: {}", spaceId);
+                LOG.info("### RawBody received in controller: {}", rawBody);
+//                String spaceId = String.valueOf(rawBody.);
+//                LOG.info("### 123 Received webhook event for space ID: {}", spaceId);
                 return webHookService.handleClickUpEvent(signature, rawBody);
             } catch (Exception e) {
 //                LOG.error("Error processing webhook event: " + e.getMessage());
