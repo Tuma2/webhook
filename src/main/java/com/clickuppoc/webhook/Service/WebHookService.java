@@ -6,5 +6,5 @@ import org.springframework.http.ResponseEntity;
 import java.util.Map;
 
 public interface WebHookService {
-    ResponseEntity<Map<String, Object>> handleClickUpEvent(String signature, String rawBody);
+    ResponseEntity<Map<String, Object>> handleClickUpEvent(String signature, Map<String, Object> rawBody);
 }
