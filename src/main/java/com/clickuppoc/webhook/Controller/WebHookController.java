@@ -29,7 +29,7 @@ public class WebHookController {
                 LOG.info("### RawBody received in controller: {}", rawBody.toString());
                 String spaceId = String.valueOf(rawBody.get("space_id"));
                 LOG.info("### 123 Received webhook event for space ID: {}", spaceId);
-                return webHookService.handleClickUpEvent(signature, rawBody.toString());
+                return webHookService.handleClickUpEvent(signature, rawBody);
             } catch (Exception e) {
 //                LOG.error("Error processing webhook event: " + e.getMessage());
                 throw new RuntimeException(e);
