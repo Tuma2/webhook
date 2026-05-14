@@ -144,6 +144,7 @@ public class OrchestrationImplementation implements WebHookService {
     }
 
     private boolean isValidSignature(Map<String, Object> rawBody, String receivedSignature) {
+        LOG.info("### Verifying signature for incoming webhook event receivedSignature {}:",receivedSignature);
         if (receivedSignature == null || receivedSignature.isBlank()) {
             LOG.warn("### No x-signature header present");
             return false;
