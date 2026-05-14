@@ -79,9 +79,8 @@ public class OrchestrationImplementation implements WebHookService {
         LOG.info("### Received ClickUp event: {} | list: {}", event, listId);
         LOG.info("### Payload details - spaceId: {}, teamId: {}, webhookId: {}", spaceId, teamId, webhookId);
 
-        // 3. ── Filter: only act on listCreated
         if ("listCreated".equals(event)) {
-            triggerSuperagentAsync(listId, spaceId, teamId, webhookId);
+            triggerSuperagentAsync(spaceId, teamId, webhookId);
         } else {
             LOG.info("### Event ignored (not listCreated): {}", event);
         }
@@ -117,35 +116,31 @@ public class OrchestrationImplementation implements WebHookService {
 
     }
 
-    private void triggerSuperagentAsync(
-            String listId, String spaceId, String teamId, String webhookId) {
+    private void triggerSuperagentAsync(String spaceId, String teamId, String webhookId) {
 
         new Thread(() -> {
             try {
-                LOG.info("### Triggering superagent for list: {}", listId);
+                LOG.info("### Triggering superagent for space: {}", spaceId);
 
                 HttpHeaders headers = new HttpHeaders();
                 headers.setContentType(MediaType.APPLICATION_JSON);
                 headers.set("Authorization", superagentApiKey);
 
-                // Step 1: Create or retrieve DM channel with the super agent
+                // Step 1: Create or retrieve DM channel
                 Map<String, Object> dmBody = new HashMap<>();
                 dmBody.put("member_ids", java.util.List.of(superagentUserId));
 
                 HttpEntity<Map<String, Object>> dmRequest = new HttpEntity<>(dmBody, headers);
 
-                // Step 1: Create or retrieve DM channel with the super agent
                 ResponseEntity<Map> dmResponse = restTemplate.postForEntity(
                         "https://api.clickup.com/api/v3/workspaces/" + teamId + "/chat/channels/direct_message",
                         dmRequest,
                         Map.class
                 );
 
-// Log full response to see actual structure
                 LOG.info("### DM Response body: {}", dmResponse.getBody());
 
                 Map<?, ?> dmBodyOne = dmResponse.getBody();
-// Try both possible keys
                 String channelId = null;
                 if (dmBodyOne != null) {
                     if (dmBodyOne.get("id") != null) {
@@ -159,9 +154,9 @@ public class OrchestrationImplementation implements WebHookService {
 
                 LOG.info("### DM channel ID: {}", channelId);
 
-                // Step 2: Send a message to the super agent
-                String message = "A new client list has been created in the WWISE PMO space. " +
-                        "List ID: " + listId + ", Space ID: " + spaceId + ". " +
+                // Step 2: Send message referencing the new space
+                String message = "A new client space has been created in the WWISE PMO. " +
+                        "Space ID: " + spaceId + ". " +
                         "Please scaffold the full 4-list structure for this client now: " +
                         "1) Consultation & Onboarding, 2) ISO Implementation (4-Phase), " +
                         "3) Gap Analysis, 4) Internal Audit & Closing. " +
@@ -183,10 +178,9 @@ public class OrchestrationImplementation implements WebHookService {
 
                 LOG.info("### Superagent DM sent: HTTP {}", msgResponse.getStatusCode());
                 LOG.info("### Superagent response body: {}", msgResponse.getBody());
-                LOG.info("### Superagent DM sent successfully to channel: {}", channelId);
 
             } catch (Exception e) {
-                LOG.error("Failed to trigger superagent: {}", e.getMessage());
+                LOG.error("### Failed to trigger superagent: {}", e.getMessage());
             }
         }).start();
     }
