@@ -52,7 +52,7 @@ public class OrchestrationImplementation implements WebHookService {
         String event = String.valueOf(rawBody.get("event"));
         String teamId    = String.valueOf(rawBody.get("team_id"));
         String webhookId = String.valueOf(rawBody.get("webhook_id"));
-        LOG.info("#### ==> SpaceId: {}\nEvent: {}\nTeamId: {}\nWebhookId: {}", spaceId, event, teamId, webhookId);
+        LOG.info("#### ==> SpaceId: {}\nEvent: {}\nTeamId: {}\nWebhookId: {}\nsecret: {}", spaceId, event, teamId, webhookId, webhookSecret);
 
         if("spaceCreated".equals(event)){
             triggerSpaceEvent(spaceId, teamId, webhookId);
