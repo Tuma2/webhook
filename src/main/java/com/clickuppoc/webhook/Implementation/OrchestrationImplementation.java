@@ -150,16 +150,36 @@ public class OrchestrationImplementation implements WebHookService {
                 }
                 LOG.info("### Created folder ID: {}", folderId);
 
+                Map<String, Object> dmChannelBody = new HashMap<>();
+                dmBody.put("member_ids", java.util.List.of(superagentUserId));
+
+                HttpEntity<Map<String, Object>> dmChannelRequest = new HttpEntity<>(dmChannelBody, headers);
+
+                ResponseEntity<Map> dmChannelResponse = restTemplate.postForEntity(
+                        "https://api.clickup.com/api/v3/workspaces/" + teamId + "/chat/channels/direct_message",
+                        dmChannelRequest,
+                        Map.class
+                );
+
+                LOG.info("### DM Channel Response body: {}", dmChannelResponse.getBody());
+
+                Map<?, ?> dmResponseBody = dmResponse.getBody();
                 String channelId = null;
-                if (dmBodyOne != null) {
-                    if (dmBodyOne.get("id") != null) {
-                        channelId = dmBodyOne.get("id").toString();
-                    } else if (dmBodyOne.get("channel_id") != null) {
-                        channelId = dmBodyOne.get("channel_id").toString();
-                    } else if (dmBodyOne.get("data") != null) {
-                        channelId = ((Map<?, ?>) dmBodyOne.get("data")).get("id").toString();
+                if (dmResponseBody != null) {
+                    if (dmResponseBody.get("id") != null) {
+                        channelId = dmResponseBody.get("id").toString();
+                    } else if (dmResponseBody.get("channel_id") != null) {
+                        channelId = dmResponseBody.get("channel_id").toString();
+                    } else if (dmResponseBody.get("data") instanceof Map) {
+                        channelId = ((Map<?, ?>) dmResponseBody.get("data")).get("id").toString();
                     }
                 }
+
+                if (channelId == null) {
+                    LOG.error("### Could not extract channelId — aborting");
+                    return;
+                }
+                LOG.info("### DM channel ID: {}", channelId);
 
                 LOG.info("### Created channel ID: {}", channelId);
 
