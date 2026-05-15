@@ -140,8 +140,10 @@ public class OrchestrationImplementation implements WebHookService {
                 );
                 LOG.info("### Folder Response body: {}", folderResponse.getBody());
 
-                String folderId = null;
                 Map<?, ?> folderResponseBody = folderResponse.getBody();
+                String folderId = null;
+                String spaceName = null;
+
                 if (folderResponseBody != null) {
                     if (folderResponseBody.get("id") != null) {
                         folderId = folderResponseBody.get("id").toString();
@@ -156,6 +158,12 @@ public class OrchestrationImplementation implements WebHookService {
                     return;
                 }
                 LOG.info("### Created folder ID: {}", folderId);
+
+                if (folderResponseBody.get("space") instanceof Map<?, ?> spaceObj) {
+                    spaceName = spaceObj.get("name") != null ? spaceObj.get("name").toString() : null;
+                }
+
+                LOG.info("### Folder ID: {}, Space Name: {}", folderId, spaceName);
 
                 List<String> createdListIds = new ArrayList<>();
                 for (String listName : listNames) {
