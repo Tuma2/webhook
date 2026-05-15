@@ -165,6 +165,25 @@ public class OrchestrationImplementation implements WebHookService {
 
                 LOG.info("### Folder ID: {}, Space Name: {}", folderId, spaceName);
 
+//              Todo: Update folder name to match space name (if needed) and add "WWISE PMO" suffix
+                try{
+                    if (spaceName != null && !spaceName.isBlank()) {
+                        String updatedFolderName = spaceName + " - WWISE PMO";
+                        Map<String, Object> updateBody = new HashMap<>();
+                        updateBody.put("name", updatedFolderName);
+                        HttpEntity<Map<String, Object>> updateRequest = new HttpEntity<>(updateBody, headers);
+                        ResponseEntity<Map> updateResponse = restTemplate.exchange(
+                                "https://api.clickup.com/api/v2/folder/" + folderId,
+                                HttpMethod.PUT,
+                                updateRequest,
+                                Map.class
+                        );
+                        LOG.info("### Folder update response: HTTP {}, body: {}", updateResponse.getStatusCode(), updateResponse.getBody());
+                    }
+                } catch (Exception e) {
+                    LOG.error("### Failed to update folder name: {}", e.getMessage());
+                }
+
                 List<String> createdListIds = new ArrayList<>();
                 for (String listName : listNames) {
                     Map<String, Object> listBody = new HashMap<>();
