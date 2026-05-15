@@ -13,9 +13,7 @@ import org.springframework.web.client.RestTemplate;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.HexFormat;
-import java.util.Map;
+import java.util.*;
 
 @Service
 public class OrchestrationImplementation implements WebHookService {
@@ -118,6 +116,13 @@ public class OrchestrationImplementation implements WebHookService {
     private void triggerSpaceEvent(String spaceId, String teamId, String webhookId) {
         LOG.info("### Triggering spaceCreated event for spaceId: {}, teamId: {}, webhookId: {}", spaceId, teamId, webhookId);
 
+        List<String> listNames = java.util.List.of(
+                "Consultation & Onboarding",
+                "ISO Implementation (4-Phase)",
+                "Gap Analysis",
+                "Internal Audit & Closing"
+        );
+
         new Thread(() -> {
             try {
                 HttpHeaders headers = new HttpHeaders();
@@ -151,6 +156,25 @@ public class OrchestrationImplementation implements WebHookService {
                     return;
                 }
                 LOG.info("### Created folder ID: {}", folderId);
+
+                List<String> createdListIds = new ArrayList<>();
+                for (String listName : listNames) {
+                    Map<String, Object> listBody = new HashMap<>();
+                    listBody.put("name", listName);
+
+                    HttpEntity<Map<String, Object>> listRequest = new HttpEntity<>(listBody, headers);
+                    ResponseEntity<Map> listResponse = restTemplate.postForEntity(
+                            "https://api.clickup.com/api/v2/folder/" + folderId + "/list",
+                            listRequest, Map.class
+                    );
+
+                    Map<?, ?> listResponseBody = listResponse.getBody();
+                    if (listResponseBody != null && listResponseBody.get("id") != null) {
+                        createdListIds.add(listResponseBody.get("id").toString());
+                    }
+                    LOG.info("### Created list [{}]", listName);
+                }
+                LOG.info("### All lists created: {}", createdListIds);
 
                 // ── Step 2: Create DM channel ──────────────────────────────────
                 Map<String, Object> dmChannelBody = new HashMap<>();
