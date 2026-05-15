@@ -115,106 +115,99 @@ public class OrchestrationImplementation implements WebHookService {
         return ResponseEntity.<Map<String, Object>>ok(ack);
     }
 
-    private void triggerSpaceEvent(String spaceId, String teamId, String webhookId){
+    private void triggerSpaceEvent(String spaceId, String teamId, String webhookId) {
         LOG.info("### Triggering spaceCreated event for spaceId: {}, teamId: {}, webhookId: {}", spaceId, teamId, webhookId);
 
         new Thread(() -> {
-            try{
+            try {
                 HttpHeaders headers = new HttpHeaders();
                 headers.setContentType(MediaType.APPLICATION_JSON);
                 headers.set("Authorization", superagentApiKey);
 
-                Map<String, Object> dmBody = new HashMap<>();
-                dmBody.put("member_ids", java.util.List.of(superagentUserId));
-                dmBody.put("name","Test Folder");
+                // ── Step 1: Create folder ──────────────────────────────────────
+                Map<String, Object> folderBody = new HashMap<>();
+                folderBody.put("name", "Test Folder"); // ✅ name only
 
-                HttpEntity<Map<String, Object>> dmRequest = new HttpEntity<>(dmBody, headers);
-
-                ResponseEntity<Map> dmResponse = restTemplate.postForEntity(
-                        "https://api.clickup.com/api/v2/space/"+spaceId+"/folder",
-                        dmRequest,
-                        Map.class
+                HttpEntity<Map<String, Object>> folderRequest = new HttpEntity<>(folderBody, headers);
+                ResponseEntity<Map> folderResponse = restTemplate.postForEntity(
+                        "https://api.clickup.com/api/v2/space/" + spaceId + "/folder",
+                        folderRequest, Map.class
                 );
-                LOG.info("### 123 DM Response body: {}", dmResponse.getBody());
+                LOG.info("### Folder Response body: {}", folderResponse.getBody());
 
                 String folderId = null;
-                Map<?, ?> dmBodyOne = dmResponse.getBody();
-                if (dmBodyOne != null) {
-                    if (dmBodyOne.get("id") != null) {
-                        folderId = dmBodyOne.get("id").toString();
-                    } else if (dmBodyOne.get("folder_id") != null) {
-                        folderId = dmBodyOne.get("folder_id").toString();
-                    } else if (dmBodyOne.get("data") != null) {
-                        folderId = ((Map<?, ?>) dmBodyOne.get("data")).get("id").toString();
+                Map<?, ?> folderResponseBody = folderResponse.getBody();
+                if (folderResponseBody != null) {
+                    if (folderResponseBody.get("id") != null) {
+                        folderId = folderResponseBody.get("id").toString();
+                    } else if (folderResponseBody.get("folder_id") != null) {
+                        folderId = folderResponseBody.get("folder_id").toString();
+                    } else if (folderResponseBody.get("data") != null) {
+                        folderId = ((Map<?, ?>) folderResponseBody.get("data")).get("id").toString();
                     }
+                }
+                if (folderId == null) {
+                    LOG.error("### Could not extract folderId — aborting");
+                    return;
                 }
                 LOG.info("### Created folder ID: {}", folderId);
 
+                // ── Step 2: Create DM channel ──────────────────────────────────
                 Map<String, Object> dmChannelBody = new HashMap<>();
-                dmBody.put("member_ids", java.util.List.of(superagentUserId));
+                dmChannelBody.put("member_ids", java.util.List.of(superagentUserId));
 
                 HttpEntity<Map<String, Object>> dmChannelRequest = new HttpEntity<>(dmChannelBody, headers);
-
                 ResponseEntity<Map> dmChannelResponse = restTemplate.postForEntity(
                         "https://api.clickup.com/api/v3/workspaces/" + teamId + "/chat/channels/direct_message",
-                        dmChannelRequest,
-                        Map.class
+                        dmChannelRequest, Map.class
                 );
-
                 LOG.info("### DM Channel Response body: {}", dmChannelResponse.getBody());
 
-                Map<?, ?> dmResponseBody = dmResponse.getBody();
                 String channelId = null;
-                if (dmResponseBody != null) {
-                    if (dmResponseBody.get("id") != null) {
-                        channelId = dmResponseBody.get("id").toString();
-                    } else if (dmResponseBody.get("channel_id") != null) {
-                        channelId = dmResponseBody.get("channel_id").toString();
-                    } else if (dmResponseBody.get("data") instanceof Map) {
-                        channelId = ((Map<?, ?>) dmResponseBody.get("data")).get("id").toString();
+                Map<?, ?> dmChannelResponseBody = dmChannelResponse.getBody();
+                if (dmChannelResponseBody != null) {
+                    if (dmChannelResponseBody.get("id") != null) {
+                        channelId = dmChannelResponseBody.get("id").toString();
+                    } else if (dmChannelResponseBody.get("channel_id") != null) {
+                        channelId = dmChannelResponseBody.get("channel_id").toString();
+                    } else if (dmChannelResponseBody.get("data") instanceof Map) {
+                        channelId = ((Map<?, ?>) dmChannelResponseBody.get("data")).get("id").toString();
                     }
                 }
-
                 if (channelId == null) {
                     LOG.error("### Could not extract channelId — aborting");
                     return;
                 }
                 LOG.info("### DM channel ID: {}", channelId);
 
-                LOG.info("### Created channel ID: {}", channelId);
-
-                if(dmResponse.getStatusCode().is2xxSuccessful()){
-//                    TODO: Add logiC TO CREATE THE FOLDER STRUCTURE FOR THE PMO TEMPLATE THEN TRIGGER THE MESSAGE TO SUPERAGENT
+                // ── Step 3: Send message ───────────────────────────────────────
+                if (dmChannelResponse.getStatusCode().is2xxSuccessful()) {
                     String message = "A new client space has been created in the WWISE PMO. " +
                             "Space ID: " + spaceId + ". " +
-                            "In the folder with this Folder ID: "+ folderId +
+                            "Folder ID: " + folderId + ". " +
                             "Please scaffold the full 4-list structure for this client now: " +
                             "1) Consultation & Onboarding, 2) ISO Implementation (4-Phase), " +
                             "3) Gap Analysis, 4) Internal Audit & Closing. " +
                             "Use the standard WWISE PMO configuration for statuses, custom fields, and views.";
-
-                    LOG.info("### Successfully triggered space event for spaceId: {}", spaceId);
 
                     Map<String, Object> msgBody = new HashMap<>();
                     msgBody.put("content", message);
                     msgBody.put("content_format", "text/md");
 
                     HttpEntity<Map<String, Object>> msgRequest = new HttpEntity<>(msgBody, headers);
-
                     ResponseEntity<String> msgResponse = restTemplate.postForEntity(
                             "https://api.clickup.com/api/v3/workspaces/" + teamId + "/chat/channels/" + channelId + "/messages",
-                            msgRequest,
-                            String.class
+                            msgRequest, String.class
                     );
 
                     LOG.info("### Superagent DM sent: HTTP {}", msgResponse.getStatusCode());
                     LOG.info("### Superagent response body: {}", msgResponse.getBody());
                 } else {
-                    LOG.warn("### Failed to trigger space event for spaceId: {}. HTTP Status: {}", spaceId, dmResponse.getStatusCode());
+                    LOG.warn("### DM channel creation failed. HTTP Status: {}", dmChannelResponse.getStatusCode());
                 }
 
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                LOG.error("### triggerSpaceEvent failed: {}", e.getMessage(), e); // ✅ no RuntimeException
             }
         }).start();
     }
