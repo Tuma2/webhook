@@ -137,18 +137,62 @@ public class OrchestrationImplementation implements WebHookService {
                 );
                 LOG.info("### 123 DM Response body: {}", dmResponse.getBody());
 
+                String folderId = null;
+                Map<?, ?> dmBodyOne = dmResponse.getBody();
+                if (dmBodyOne != null) {
+                    if (dmBodyOne.get("id") != null) {
+                        folderId = dmBodyOne.get("id").toString();
+                    } else if (dmBodyOne.get("folder_id") != null) {
+                        folderId = dmBodyOne.get("folder_id").toString();
+                    } else if (dmBodyOne.get("data") != null) {
+                        folderId = ((Map<?, ?>) dmBodyOne.get("data")).get("id").toString();
+                    }
+                }
+                LOG.info("### Created folder ID: {}", folderId);
+
+                String channelId = null;
+                if (dmBodyOne != null) {
+                    if (dmBodyOne.get("id") != null) {
+                        channelId = dmBodyOne.get("id").toString();
+                    } else if (dmBodyOne.get("channel_id") != null) {
+                        channelId = dmBodyOne.get("channel_id").toString();
+                    } else if (dmBodyOne.get("data") != null) {
+                        channelId = ((Map<?, ?>) dmBodyOne.get("data")).get("id").toString();
+                    }
+                }
+
+                LOG.info("### Created channel ID: {}", channelId);
+
                 if(dmResponse.getStatusCode().is2xxSuccessful()){
 //                    TODO: Add logiC TO CREATE THE FOLDER STRUCTURE FOR THE PMO TEMPLATE THEN TRIGGER THE MESSAGE TO SUPERAGENT
+                    String message = "A new client space has been created in the WWISE PMO. " +
+                            "Space ID: " + spaceId + ". " +
+                            "In the folder with this Folder ID: "+ folderId +
+                            "Please scaffold the full 4-list structure for this client now: " +
+                            "1) Consultation & Onboarding, 2) ISO Implementation (4-Phase), " +
+                            "3) Gap Analysis, 4) Internal Audit & Closing. " +
+                            "Use the standard WWISE PMO configuration for statuses, custom fields, and views.";
+
                     LOG.info("### Successfully triggered space event for spaceId: {}", spaceId);
+
+                    Map<String, Object> msgBody = new HashMap<>();
+                    msgBody.put("content", message);
+                    msgBody.put("content_format", "text/md");
+
+                    HttpEntity<Map<String, Object>> msgRequest = new HttpEntity<>(msgBody, headers);
+
+                    ResponseEntity<String> msgResponse = restTemplate.postForEntity(
+                            "https://api.clickup.com/api/v3/workspaces/" + teamId + "/chat/channels/" + channelId + "/messages",
+                            msgRequest,
+                            String.class
+                    );
+
+                    LOG.info("### Superagent DM sent: HTTP {}", msgResponse.getStatusCode());
+                    LOG.info("### Superagent response body: {}", msgResponse.getBody());
                 } else {
                     LOG.warn("### Failed to trigger space event for spaceId: {}. HTTP Status: {}", spaceId, dmResponse.getStatusCode());
                 }
-//                String message = "A new client space has been created in the WWISE PMO. " +
-//                        "Space ID: " + spaceId + ". " +
-//                        "Please scaffold the full 4-list structure for this client now: " +
-//                        "1) Consultation & Onboarding, 2) ISO Implementation (4-Phase), " +
-//                        "3) Gap Analysis, 4) Internal Audit & Closing. " +
-//                        "Use the standard WWISE PMO configuration for statuses, custom fields, and views.";
+
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -205,74 +249,5 @@ public class OrchestrationImplementation implements WebHookService {
                 throw new RuntimeException(e);
             }
         });
-    }
-
-    private void triggerSuperagentAsync(String spaceId, String teamId, String webhookId) {
-
-        new Thread(() -> {
-            try {
-                LOG.info("### Triggering superagent for space: {}", spaceId);
-
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_JSON);
-                headers.set("Authorization", superagentApiKey);
-
-                // Step 1: Create or retrieve DM channel
-                Map<String, Object> dmBody = new HashMap<>();
-                dmBody.put("member_ids", java.util.List.of(superagentUserId));
-
-                HttpEntity<Map<String, Object>> dmRequest = new HttpEntity<>(dmBody, headers);
-
-                ResponseEntity<Map> dmResponse = restTemplate.postForEntity(
-                        "https://api.clickup.com/api/v3/workspaces/" + teamId + "/chat/channels/direct_message",
-                        dmRequest,
-                        Map.class
-                );
-
-                LOG.info("### DM Response body: {}", dmResponse.getBody());
-
-                Map<?, ?> dmBodyOne = dmResponse.getBody();
-                String channelId = null;
-                if (dmBodyOne != null) {
-                    if (dmBodyOne.get("id") != null) {
-                        channelId = dmBodyOne.get("id").toString();
-                    } else if (dmBodyOne.get("channel_id") != null) {
-                        channelId = dmBodyOne.get("channel_id").toString();
-                    } else if (dmBodyOne.get("data") != null) {
-                        channelId = ((Map<?, ?>) dmBodyOne.get("data")).get("id").toString();
-                    }
-                }
-
-                LOG.info("### DM channel ID: {}", channelId);
-
-                // Step 2: Send message referencing the new space
-                String message = "A new client space has been created in the WWISE PMO. " +
-                        "Space ID: " + spaceId + ". " +
-                        "Please scaffold the full 4-list structure for this client now: " +
-                        "1) Consultation & Onboarding, 2) ISO Implementation (4-Phase), " +
-                        "3) Gap Analysis, 4) Internal Audit & Closing. " +
-                        "Use the standard WWISE PMO configuration for statuses, custom fields, and views.";
-
-                LOG.info("#### Message to send: {}", message);
-
-                Map<String, Object> msgBody = new HashMap<>();
-                msgBody.put("content", message);
-                msgBody.put("content_format", "text/md");
-
-                HttpEntity<Map<String, Object>> msgRequest = new HttpEntity<>(msgBody, headers);
-
-                ResponseEntity<String> msgResponse = restTemplate.postForEntity(
-                        "https://api.clickup.com/api/v3/workspaces/" + teamId + "/chat/channels/" + channelId + "/messages",
-                        msgRequest,
-                        String.class
-                );
-
-                LOG.info("### Superagent DM sent: HTTP {}", msgResponse.getStatusCode());
-                LOG.info("### Superagent response body: {}", msgResponse.getBody());
-
-            } catch (Exception e) {
-                LOG.error("### Failed to trigger superagent: {}", e.getMessage());
-            }
-        }).start();
     }
 }
